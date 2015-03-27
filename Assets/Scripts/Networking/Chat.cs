@@ -35,6 +35,9 @@ public class Chat : MonoBehaviour {
 	
 	public Material shrek;//Shrek stuff
 	public AudioClip shreksong;
+	public Material pikchu;//Pokemon Stuff
+	public AudioClip pokesong;
+
 
 	void Update() {
 		if (isTyping) {
@@ -65,35 +68,44 @@ public class Chat : MonoBehaviour {
 		}
 		//efil si kerhs, evol si kerhs
 	}
-
-
+	
+	void EnablePoke() {
+		//Gotta Catch em all!
+		Racer[] racers = GameObject.FindObjectsOfType<Racer>();
+		foreach (Racer r in racers) {
+			r.renderer.material = pikchu;
+		}
+		GameObject go = GameObject.Find("music");
+		if (go != null) {
+			go.audio.clip = pokesong;
+			go.GetComponent<MusicPlayer>().Play("Gotta Catch them all!");
+		}
+		//Pikachu I choose you!!!
+	}
 	
 	[RPC]
-	public void SendChatMessage(NetworkPlayer sender, string message) {
-        ServerPlayer player = GetComponent<Client>().FindServerPlayer(sender);
-        string name = player.name;
-        if(player.spectating)
-        {
-            name = "[Spectating] " + name;
-        }
-        if (GetComponent<Client>().IsHost(sender))
-        {
-            name = "[Host] " + name;
-        }
-        AddMessage(name, message, PlayerTypeHandler.GetPlayerColor(player.type));
+	public void SendChatMessage(string name, string message, Vector3 color) {
+		Color realColor = new Color(color.x,color.y,color.z);
+		AddMessage(name, message, realColor);
 	}
-
-    [RPC]
-    public void GetServerMessage(string text, Vector3 color)
-    {
-        AddMessage("[System]", text, new Color(color.x, color.y, color.z));
-    }
 
 	void Send() {
 		if (message.Trim() != "") {
-			networkView.RPC("SendChatMessage",RPCMode.All,Network.player,message);
+			string nameToShow = GameSettings.user.playerName;
+			ServerPlayer me = GetComponent<Client>().FindServerPlayer(Network.player);
+			if (me.spectating) {
+				nameToShow = "[Spectating] " + nameToShow;
+			}
+			if (GetComponent<Client>().IsHost(Network.player)) {
+				nameToShow = "[Host] " + nameToShow;
+			}
+			Color color = PlayerTypeHandler.GetPlayerColor(me.type);
+			networkView.RPC("SendChatMessage",RPCMode.All,nameToShow,message,new Vector3(color.r,color.g,color.b));
 			if (message.ToLower().Contains("shrek")) {
 				EnableShreking();
+			}
+			if (message.ToLower().Contains ("pokemon")) {
+				EnablePoke();
 			}
 		}
 		message = "";
